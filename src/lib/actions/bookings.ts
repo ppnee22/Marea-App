@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/actions/guard";
 import { Platform } from "@prisma/client";
+import { put } from "@vercel/blob";
 
 function str(formData: FormData, key: string): string | null {
   const v = formData.get(key);
@@ -94,6 +95,38 @@ export async function deleteBooking(bookingId: string) {
   revalidatePath("/mare");
   revalidatePath("/mare/prenotazioni");
   redirect("/mare/prenotazioni");
+}
+
+/** Crea la prenotazione e allega gli screenshot caricati (fino a 2) come documenti. */
+export async function createBookingFromImport(formData: FormData) {
+  await requireAuth();
+  const data = parseBookingForm(formData);
+
+  const booking = await prisma.booking.create({ data });
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const files = formData.getAll("screenshots").filter((f): f is File => f instanceof File && f.size > 0);
+    for (const file of files.slice(0, 2)) {
+      const blob = await put(`documents/${Date.now()}-${file.name}`, file, {
+        access: "public",
+        addRandomSuffix: true,
+      });
+      await prisma.document.create({
+        data: {
+          category: "SCREENSHOT_PRENOTAZIONE",
+          fileName: file.name,
+          fileUrl: blob.url,
+          mimeType: file.type || null,
+          propertyId: booking.propertyId,
+          bookingId: booking.id,
+        },
+      });
+    }
+  }
+
+  revalidatePath("/mare");
+  revalidatePath("/mare/prenotazioni");
+  redirect(`/mare/prenotazioni/${booking.id}`);
 }
 
 export async function updateBookingNotes(bookingId: string, formData: FormData) {

@@ -31,17 +31,22 @@ Analizza l'immagine (o le immagini, che potrebbero essere due schermate della st
 Rispondi ESCLUSIVAMENTE con un oggetto JSON valido con queste chiavi, nessun altro testo.
 Se un dato non è presente o leggibile nell'immagine, usa null per quel campo.`;
 
-export async function extractBookingFromScreenshots(
-  images: { base64: string; mimeType: string }[]
-): Promise<ExtractedBookingData> {
+export async function extractBookingFromScreenshots(files: File[]): Promise<ExtractedBookingData> {
   await requireAuth();
 
-  if (images.length === 0) {
+  if (files.length === 0) {
     throw new Error("Carica almeno uno screenshot");
   }
-  if (images.length > 2) {
+  if (files.length > 2) {
     throw new Error("Puoi caricare al massimo 2 screenshot per prenotazione");
   }
+
+  const images = await Promise.all(
+    files.map(async (file) => ({
+      base64: Buffer.from(await file.arrayBuffer()).toString("base64"),
+      mimeType: file.type || "image/jpeg",
+    }))
+  );
 
   const anthropic = getAnthropicClient();
 
