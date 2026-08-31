@@ -12,10 +12,12 @@ export function DocumentUploadForm({
   propertyId,
   bookingId,
   defaultCategory,
+  properties,
 }: {
   propertyId?: string;
   bookingId?: string;
   defaultCategory?: DocumentCategory;
+  properties?: { id: string; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -47,6 +49,19 @@ export function DocumentUploadForm({
     >
       {propertyId ? <input type="hidden" name="propertyId" value={propertyId} /> : null}
       {bookingId ? <input type="hidden" name="bookingId" value={bookingId} /> : null}
+
+      {!propertyId && properties ? (
+        <Field label="Appartamento">
+          <Select name="propertyId" defaultValue="">
+            <option value="">Documento generale (nessun appartamento)</option>
+            {properties.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      ) : null}
 
       <Field label="Categoria">
         <Select name="category" required defaultValue={defaultCategory ?? ""}>

@@ -10,10 +10,12 @@ const CATEGORY_OPTIONS = enumOptions(EXPENSE_CATEGORY_LABELS);
 export function ExpenseForm({
   propertyId,
   bookingId,
+  properties,
   onDone,
 }: {
-  propertyId: string;
+  propertyId?: string;
   bookingId?: string;
+  properties?: { id: string; name: string }[];
   onDone?: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -35,10 +37,24 @@ export function ExpenseForm({
       }}
       className="space-y-3 rounded-xl border border-slate-200 p-4"
     >
-      <input type="hidden" name="propertyId" value={propertyId} />
+      {propertyId ? <input type="hidden" name="propertyId" value={propertyId} /> : null}
       {bookingId ? <input type="hidden" name="bookingId" value={bookingId} /> : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
+        {!propertyId && properties ? (
+          <Field label="Appartamento">
+            <Select name="propertyId" required defaultValue="">
+              <option value="" disabled>
+                Seleziona...
+              </option>
+              {properties.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : null}
         <Field label="Categoria">
           <Select name="category" required defaultValue="">
             <option value="" disabled>
