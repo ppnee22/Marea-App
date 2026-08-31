@@ -65,7 +65,7 @@ Tienile da parte, ti serviranno al Passo 3.
    | `SEED_USER_PASSWORD` | la password che vuoi usare per accedere |
    | `SEED_USER_NAME` | il tuo nome (opzionale) |
 
-4. Se il progetto non seleziona automaticamente il branch giusto, imposta il **Production Branch** su `claude/marea-rental-management-app-ug1aos` (oppure, meglio, fai il merge di questo branch su `main` da GitHub prima di collegare Vercel, così Vercel userà `main` come branch di produzione).
+4. Tutto il codice è già sul branch `main` del repository, quindi Vercel lo userà automaticamente come branch di produzione: non serve nessuna configurazione aggiuntiva.
 5. Clicca **Deploy**. La prima build richiede 1-2 minuti.
 
 ### Passo 4 — Crea le tabelle nel database e il tuo utente
