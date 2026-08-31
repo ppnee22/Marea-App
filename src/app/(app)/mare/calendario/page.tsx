@@ -52,17 +52,17 @@ export default async function CalendarPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">Calendario — {property.name}</h1>
-        <div className="flex items-center gap-3">
-          <Link href={`/mare/calendario?year=${prev.year}&month=${prev.month}`} className="rounded-lg px-3 py-1.5 text-sm hover:bg-slate-100">
-            ← {MONTH_NAMES_IT[prev.month - 1]}
+        <div className="flex items-center justify-between gap-2 sm:justify-end sm:gap-3">
+          <Link href={`/mare/calendario?year=${prev.year}&month=${prev.month}`} className="shrink-0 rounded-lg px-2 py-1.5 text-sm hover:bg-slate-100 sm:px-3">
+            ← <span className="hidden sm:inline">{MONTH_NAMES_IT[prev.month - 1]}</span>
           </Link>
           <span className="font-medium text-slate-800">
             {MONTH_NAMES_IT[month - 1]} {year}
           </span>
-          <Link href={`/mare/calendario?year=${next.year}&month=${next.month}`} className="rounded-lg px-3 py-1.5 text-sm hover:bg-slate-100">
-            {MONTH_NAMES_IT[next.month - 1]} →
+          <Link href={`/mare/calendario?year=${next.year}&month=${next.month}`} className="shrink-0 rounded-lg px-2 py-1.5 text-sm hover:bg-slate-100 sm:px-3">
+            <span className="hidden sm:inline">{MONTH_NAMES_IT[next.month - 1]}</span> →
           </Link>
         </div>
       </div>
