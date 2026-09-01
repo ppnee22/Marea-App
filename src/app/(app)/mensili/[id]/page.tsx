@@ -8,6 +8,7 @@ import { Badge, Button, Card, StatCard } from "@/components/ui/primitives";
 import { MonthlyPaymentsTable } from "@/components/monthly-payments-table";
 import { ExpenseForm } from "@/components/expense-form";
 import { ExpenseList } from "@/components/expense-list";
+import { toExpenseListItems } from "@/lib/expense-serialize";
 import { DocumentUploadForm } from "@/components/document-upload-form";
 import { DocumentList } from "@/components/document-list";
 import { NotesPanel } from "@/components/notes-panel";
@@ -86,7 +87,7 @@ export default async function MonthlyPropertyDetailPage({
           <h2 className="font-semibold text-slate-900">Spese ({year})</h2>
           <ExpenseForm propertyId={property.id} />
         </div>
-        <ExpenseList expenses={expenses} />
+        <ExpenseList expenses={toExpenseListItems(expenses)} />
       </Card>
 
       <Card>

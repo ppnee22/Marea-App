@@ -7,6 +7,7 @@ import { PLATFORM_LABELS } from "@/lib/labels";
 import { Badge, Button, Card } from "@/components/ui/primitives";
 import { ExpenseForm } from "@/components/expense-form";
 import { ExpenseList } from "@/components/expense-list";
+import { toExpenseListItems } from "@/lib/expense-serialize";
 import { DocumentUploadForm } from "@/components/document-upload-form";
 import { DocumentList } from "@/components/document-list";
 import { deleteBooking, updateBookingNotes } from "@/lib/actions/bookings";
@@ -96,7 +97,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
           <h2 className="font-semibold text-slate-900">Spese collegate</h2>
           <ExpenseForm propertyId={booking.propertyId} bookingId={booking.id} />
         </div>
-        <ExpenseList expenses={booking.expenses} />
+        <ExpenseList expenses={toExpenseListItems(booking.expenses)} />
       </Card>
 
       <Card>

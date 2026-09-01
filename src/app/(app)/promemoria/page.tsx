@@ -4,16 +4,18 @@ import { getAllProperties, getContractsExpiringSoon, getUnpaidMonthlyPayments, g
 import { formatCurrency, formatDate } from "@/lib/format";
 import { monthLabel, toNumber } from "@/lib/calc";
 import { Badge, Button, Card, Field, Input, Select, Textarea } from "@/components/ui/primitives";
-import { createReminder, deleteReminder, toggleReminder } from "@/lib/actions/reminders";
+import { createReminder } from "@/lib/actions/reminders";
+import { ReminderList } from "@/components/reminder-list";
 
 export default async function RemindersPage() {
-  const [checkInOut, unpaidMonthly, expiringContracts, manualReminders, properties] = await Promise.all([
+  const [checkInOut, unpaidMonthly, expiringContracts, manualRemindersRaw, properties] = await Promise.all([
     getUpcomingCheckInsOuts(14),
     getUnpaidMonthlyPayments(),
     getContractsExpiringSoon(60),
     prisma.reminder.findMany({ include: { property: true }, orderBy: [{ isDone: "asc" }, { dueDate: "asc" }] }),
     getAllProperties(),
   ]);
+  const manualReminders = manualRemindersRaw.map((r) => ({ ...r, property: r.property ? { name: r.property.name } : null }));
 
   return (
     <div className="space-y-6">
@@ -122,43 +124,7 @@ export default async function RemindersPage() {
           </Button>
         </form>
 
-        {manualReminders.length === 0 ? (
-          <p className="text-sm text-slate-500">Nessun promemoria personale.</p>
-        ) : (
-          <ul className="space-y-2">
-            {manualReminders.map((r) => (
-              <li
-                key={r.id}
-                className={`flex items-start justify-between gap-3 rounded-lg border border-slate-200 p-3 ${r.isDone ? "opacity-50" : ""}`}
-              >
-                <div className="flex items-start gap-3">
-                  <form action={toggleReminder.bind(null, r.id)}>
-                    <button
-                      type="submit"
-                      className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border ${r.isDone ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300"}`}
-                      aria-label="Segna come completato"
-                    >
-                      {r.isDone ? "✓" : ""}
-                    </button>
-                  </form>
-                  <div>
-                    <p className={`text-sm font-medium text-slate-800 ${r.isDone ? "line-through" : ""}`}>{r.title}</p>
-                    {r.description ? <p className="text-xs text-slate-500">{r.description}</p> : null}
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {r.dueDate ? <Badge color="amber">{formatDate(r.dueDate)}</Badge> : null}
-                      {r.property ? <Badge>{r.property.name}</Badge> : null}
-                    </div>
-                  </div>
-                </div>
-                <form action={deleteReminder.bind(null, r.id)}>
-                  <button type="submit" className="text-slate-400 hover:text-red-600" aria-label="Elimina">
-                    ✕
-                  </button>
-                </form>
-              </li>
-            ))}
-          </ul>
-        )}
+        <ReminderList reminders={manualReminders} />
       </Card>
     </div>
   );

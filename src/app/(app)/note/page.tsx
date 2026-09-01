@@ -3,10 +3,11 @@ import { getAllProperties } from "@/lib/queries";
 import { NotesPanel } from "@/components/notes-panel";
 
 export default async function NotesPage() {
-  const [notes, properties] = await Promise.all([
+  const [notesRaw, properties] = await Promise.all([
     prisma.note.findMany({ include: { property: true }, orderBy: { createdAt: "desc" } }),
     getAllProperties(),
   ]);
+  const notes = notesRaw.map((n) => ({ ...n, property: n.property ? { name: n.property.name } : null }));
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">

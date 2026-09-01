@@ -29,6 +29,30 @@ export async function createReminder(formData: FormData) {
   revalidatePath("/");
 }
 
+export async function updateReminder(reminderId: string, formData: FormData) {
+  await requireAuth();
+
+  const title = formData.get("title");
+  const description = formData.get("description");
+  const dueDate = formData.get("dueDate");
+
+  if (typeof title !== "string" || title.trim() === "") {
+    throw new Error("Il titolo del promemoria è obbligatorio");
+  }
+
+  await prisma.reminder.update({
+    where: { id: reminderId },
+    data: {
+      title: title.trim(),
+      description: typeof description === "string" && description.trim() ? description.trim() : null,
+      dueDate: typeof dueDate === "string" && dueDate ? new Date(dueDate) : null,
+    },
+  });
+
+  revalidatePath("/promemoria");
+  revalidatePath("/");
+}
+
 export async function toggleReminder(reminderId: string) {
   await requireAuth();
   const reminder = await prisma.reminder.findUniqueOrThrow({ where: { id: reminderId } });

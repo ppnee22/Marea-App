@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getAllProperties } from "@/lib/queries";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { sumBy } from "@/lib/calc";
 import { EXPENSE_CATEGORY_LABELS, enumOptions } from "@/lib/labels";
 import { ExpenseCategory } from "@prisma/client";
-import { Badge, Card, StatCard } from "@/components/ui/primitives";
+import { Card, StatCard } from "@/components/ui/primitives";
 import { ExpenseForm } from "@/components/expense-form";
-import { deleteExpense } from "@/lib/actions/expenses";
+import { ExpenseList } from "@/components/expense-list";
+import { toExpenseListItems } from "@/lib/expense-serialize";
 
 const CATEGORY_OPTIONS = enumOptions(EXPENSE_CATEGORY_LABELS);
 
@@ -107,37 +108,7 @@ export default async function ExpensesPage({
       </div>
 
       <Card>
-        {expenses.length === 0 ? (
-          <p className="text-sm text-slate-500">Nessuna spesa trovata con i filtri selezionati.</p>
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {expenses.map((e) => (
-              <li key={e.id} className="flex items-center justify-between gap-3 py-3 text-sm">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge>{EXPENSE_CATEGORY_LABELS[e.category]}</Badge>
-                    <span className="font-medium text-slate-800">{e.property.name}</span>
-                    <span className="text-slate-400">{formatDate(e.date)}</span>
-                  </div>
-                  {e.description ? <p className="mt-0.5 truncate text-slate-600">{e.description}</p> : null}
-                  {e.attachmentUrl ? (
-                    <a href={e.attachmentUrl} target="_blank" rel="noreferrer" className="text-xs text-teal-700 hover:underline">
-                      Vedi allegato
-                    </a>
-                  ) : null}
-                </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  <span className="font-medium text-red-600">-{formatCurrency(Number(e.amount))}</span>
-                  <form action={deleteExpense.bind(null, e.id, undefined)}>
-                    <button type="submit" className="text-slate-400 hover:text-red-600" aria-label="Elimina spesa">
-                      ✕
-                    </button>
-                  </form>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+        <ExpenseList expenses={toExpenseListItems(expenses)} />
       </Card>
     </div>
   );

@@ -31,6 +31,23 @@ export async function createNote(formData: FormData) {
   }
 }
 
+export async function updateNote(noteId: string, formData: FormData) {
+  await requireAuth();
+
+  const content = formData.get("content");
+  if (typeof content !== "string" || content.trim() === "") {
+    throw new Error("La nota non può essere vuota");
+  }
+
+  const note = await prisma.note.update({
+    where: { id: noteId },
+    data: { content: content.trim() },
+  });
+
+  revalidatePath("/note");
+  if (note.propertyId) revalidatePath(`/mensili/${note.propertyId}`);
+}
+
 export async function deleteNote(noteId: string) {
   await requireAuth();
   const note = await prisma.note.delete({ where: { id: noteId } });
