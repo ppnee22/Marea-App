@@ -26,14 +26,14 @@ async function main() {
   await prisma.platformSetting.upsert({
     where: { platform: "BOOKING" },
     update: {},
-    create: { platform: "BOOKING", commissionPercent: 15, taxPercent: 21 },
+    create: { platform: "BOOKING", commissionPercent: 15, transactionFeePercent: 1.5, vatPercent: 22, taxPercent: 21 },
   });
   await prisma.platformSetting.upsert({
     where: { platform: "AIRBNB" },
     update: {},
-    create: { platform: "AIRBNB", commissionPercent: 3, taxPercent: 21 },
+    create: { platform: "AIRBNB", commissionPercent: 3, transactionFeePercent: 0, vatPercent: 22, taxPercent: 21 },
   });
-  console.log("Impostazioni piattaforme pronte (Booking 15% commissione, Airbnb 3% commissione, tasse 21% cedolare secca).");
+  console.log("Impostazioni piattaforme pronte (Booking 15%+1,5% trans.+22% IVA, Airbnb 3%+22% IVA, tasse 21% cedolare secca).");
 }
 
 main()

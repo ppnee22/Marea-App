@@ -21,7 +21,17 @@ export async function getAllProperties() {
 /** Bilancio di un insieme di prenotazioni (mare) con relative spese collegate. */
 export async function computeBookingsBalance(bookingIds: string[]) {
   if (bookingIds.length === 0) {
-    return { totalIncome: 0, totalCommission: 0, totalTaxes: 0, totalOtherDeductions: 0, totalExpenses: 0, netProfit: 0, nights: 0, count: 0 };
+    return {
+      totalIncome: 0,
+      totalCommission: 0,
+      totalTaxes: 0,
+      totalOtherDeductions: 0,
+      totalExpenses: 0,
+      totalCityTax: 0,
+      netProfit: 0,
+      nights: 0,
+      count: 0,
+    };
   }
   const [bookings, expenses] = await Promise.all([
     prisma.booking.findMany({ where: { id: { in: bookingIds } } }),
@@ -38,6 +48,7 @@ export async function computeBookingsBalance(bookingIds: string[]) {
   const totalTaxes = sumBy(bookings, (b) => b.taxes);
   const totalOtherDeductions = sumBy(bookings, (b) => b.otherDeductions);
   const totalExpenses = sumBy(expenses, (e) => e.amount);
+  const totalCityTax = sumBy(bookings, (b) => b.cityTax);
   const netProfit = bookings.reduce(
     (acc, b) => acc + bookingNetProfit(b, expensesByBooking.get(b.id) ?? 0),
     0
@@ -50,6 +61,7 @@ export async function computeBookingsBalance(bookingIds: string[]) {
     totalTaxes,
     totalOtherDeductions,
     totalExpenses,
+    totalCityTax,
     netProfit,
     nights,
     count: bookings.length,
@@ -180,7 +192,11 @@ export async function getPlatformSettings() {
   const settings = await prisma.platformSetting.findMany();
   const map = new Map(settings.map((s) => [s.platform, s]));
   return {
-    BOOKING: map.get("BOOKING") ?? { platform: "BOOKING" as const, commissionPercent: 15, taxPercent: 21 },
-    AIRBNB: map.get("AIRBNB") ?? { platform: "AIRBNB" as const, commissionPercent: 3, taxPercent: 21 },
+    BOOKING:
+      map.get("BOOKING") ??
+      { platform: "BOOKING" as const, commissionPercent: 15, transactionFeePercent: 1.5, vatPercent: 22, taxPercent: 21 },
+    AIRBNB:
+      map.get("AIRBNB") ??
+      { platform: "AIRBNB" as const, commissionPercent: 3, transactionFeePercent: 0, vatPercent: 22, taxPercent: 21 },
   };
 }

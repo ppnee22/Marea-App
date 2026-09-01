@@ -5,12 +5,13 @@ import { Button, Field, Input, Select, Textarea } from "@/components/ui/primitiv
 import { formatCurrency } from "@/lib/format";
 
 export interface PlatformRates {
-  BOOKING: { commissionPercent: number; taxPercent: number };
-  AIRBNB: { commissionPercent: number; taxPercent: number };
+  BOOKING: { commissionPercent: number; transactionFeePercent: number; vatPercent: number; taxPercent: number };
+  AIRBNB: { commissionPercent: number; transactionFeePercent: number; vatPercent: number; taxPercent: number };
 }
 
 export interface BookingFormValues {
   guestName: string;
+  guests: string;
   platform: "BOOKING" | "AIRBNB";
   checkIn: string;
   checkOut: string;
@@ -18,11 +19,13 @@ export interface BookingFormValues {
   platformCommission: string;
   taxes: string;
   otherDeductions: string;
+  cityTax: string;
   notes: string;
 }
 
 const DEFAULT_VALUES: BookingFormValues = {
   guestName: "",
+  guests: "1",
   platform: "BOOKING",
   checkIn: "",
   checkOut: "",
@@ -30,6 +33,7 @@ const DEFAULT_VALUES: BookingFormValues = {
   platformCommission: "0",
   taxes: "0",
   otherDeductions: "0",
+  cityTax: "0",
   notes: "",
 };
 
@@ -37,10 +41,15 @@ function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
 
+function num(v: string) {
+  return Number(v.replace(",", ".")) || 0;
+}
+
 export function BookingForm({
   propertyId,
   action,
   rates,
+  cityTaxRate = 0,
   initial,
   submitLabel = "Salva prenotazione",
   autoCalcDefault = true,
@@ -48,6 +57,7 @@ export function BookingForm({
   propertyId: string;
   action: (formData: FormData) => void;
   rates: PlatformRates;
+  cityTaxRate?: number;
   initial?: Partial<BookingFormValues>;
   submitLabel?: string;
   autoCalcDefault?: boolean;
@@ -63,22 +73,41 @@ export function BookingForm({
     return diff > 0 ? diff : 0;
   }, [values.checkIn, values.checkOut]);
 
+  const breakdown = useMemo(() => {
+    const amount = num(values.amountPaid);
+    const rate = rates[values.platform];
+    const commission = (amount * rate.commissionPercent) / 100;
+    const transactionFee = (amount * rate.transactionFeePercent) / 100;
+    const vat = ((commission + transactionFee) * rate.vatPercent) / 100;
+    return { commission, transactionFee, vat };
+  }, [values.amountPaid, values.platform, rates]);
+
   const netProfit = useMemo(() => {
-    const amount = Number(values.amountPaid.replace(",", ".")) || 0;
-    const commission = Number(values.platformCommission.replace(",", ".")) || 0;
-    const taxes = Number(values.taxes.replace(",", ".")) || 0;
-    const other = Number(values.otherDeductions.replace(",", ".")) || 0;
+    const amount = num(values.amountPaid);
+    const commission = num(values.platformCommission);
+    const taxes = num(values.taxes);
+    const other = num(values.otherDeductions);
     return amount - commission - taxes - other;
   }, [values.amountPaid, values.platformCommission, values.taxes, values.otherDeductions]);
 
   function applyAutoCalc(next: BookingFormValues) {
     if (!autoCalc) return next;
-    const amount = Number(next.amountPaid.replace(",", ".")) || 0;
+    const amount = num(next.amountPaid);
     const rate = rates[next.platform];
+    const commission = (amount * rate.commissionPercent) / 100;
+    const transactionFee = (amount * rate.transactionFeePercent) / 100;
+    const vat = ((commission + transactionFee) * rate.vatPercent) / 100;
+    const nightsCount = (() => {
+      if (!next.checkIn || !next.checkOut) return 0;
+      const diff = Math.round((new Date(next.checkOut).getTime() - new Date(next.checkIn).getTime()) / 86_400_000);
+      return diff > 0 ? diff : 0;
+    })();
+    const guestsCount = Math.max(1, Math.round(num(next.guests)) || 1);
     return {
       ...next,
-      platformCommission: String(round2((amount * rate.commissionPercent) / 100)),
+      platformCommission: String(round2(commission + transactionFee + vat)),
       taxes: String(round2((amount * rate.taxPercent) / 100)),
+      cityTax: String(round2(nightsCount * guestsCount * cityTaxRate)),
     };
   }
 
@@ -99,6 +128,16 @@ export function BookingForm({
             onChange={(e) => update("guestName", e.target.value)}
           />
         </Field>
+        <Field label="Numero di ospiti">
+          <Input
+            type="number"
+            min={1}
+            name="guests"
+            required
+            value={values.guests}
+            onChange={(e) => update("guests", e.target.value)}
+          />
+        </Field>
         <Field label="Piattaforma">
           <Select
             name="platform"
@@ -109,6 +148,7 @@ export function BookingForm({
             <option value="AIRBNB">Airbnb</option>
           </Select>
         </Field>
+        <div />
         <Field label="Check-in">
           <Input
             type="date"
@@ -145,7 +185,7 @@ export function BookingForm({
                 if (e.target.checked) setValues((prev) => applyAutoCalc(prev));
               }}
             />
-            Calcola automaticamente commissioni/tasse
+            Calcola automaticamente commissioni/IVA/tasse
           </label>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -159,7 +199,7 @@ export function BookingForm({
               onChange={(e) => update("amountPaid", e.target.value)}
             />
           </Field>
-          <Field label="Commissioni piattaforma (€)">
+          <Field label="Commissioni piattaforma + IVA (€)">
             <Input
               type="text"
               inputMode="decimal"
@@ -193,9 +233,37 @@ export function BookingForm({
             />
           </Field>
         </div>
+
+        {autoCalc ? (
+          <p className="mt-2 text-xs text-slate-500">
+            Dettaglio commissione: {formatCurrency(round2(breakdown.commission))}
+            {breakdown.transactionFee > 0 ? ` + costo transazione ${formatCurrency(round2(breakdown.transactionFee))}` : ""} + IVA{" "}
+            {formatCurrency(round2(breakdown.vat))}
+          </p>
+        ) : null}
+
         <p className="mt-3 text-sm text-slate-600">
           Guadagno netto stimato (senza spese collegate):{" "}
           <span className="font-semibold text-teal-700">{formatCurrency(netProfit)}</span>
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <Field label="Tassa di soggiorno (€) — da versare al Comune, non è un guadagno">
+          <Input
+            type="text"
+            inputMode="decimal"
+            name="cityTax"
+            value={values.cityTax}
+            onChange={(e) => {
+              setAutoCalc(false);
+              update("cityTax", e.target.value);
+            }}
+          />
+        </Field>
+        <p className="mt-1 text-xs text-amber-700">
+          Calcolata automaticamente come notti × ospiti × tariffa comunale. Non viene sottratta dal guadagno netto: viene tenuta da
+          parte come importo da versare al Comune.
         </p>
       </div>
 

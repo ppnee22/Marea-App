@@ -6,7 +6,15 @@ import { createBookingFromImport } from "@/lib/actions/bookings";
 import { BookingForm, PlatformRates } from "@/components/booking-form";
 import { Button, Card } from "@/components/ui/primitives";
 
-export function ImportBookingFlow({ propertyId, rates }: { propertyId: string; rates: PlatformRates }) {
+export function ImportBookingFlow({
+  propertyId,
+  rates,
+  cityTaxRate = 0,
+}: {
+  propertyId: string;
+  rates: PlatformRates;
+  cityTaxRate?: number;
+}) {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -103,10 +111,12 @@ export function ImportBookingFlow({ propertyId, rates }: { propertyId: string; r
         <BookingForm
           propertyId={propertyId}
           rates={rates}
+          cityTaxRate={cityTaxRate}
           submitLabel="Conferma e salva prenotazione"
           autoCalcDefault={extracted.platformCommission === null && extracted.taxes === null}
           initial={{
             guestName: extracted.guestName ?? "",
+            guests: extracted.guests !== null ? String(extracted.guests) : "1",
             platform: extracted.platform ?? "BOOKING",
             checkIn: extracted.checkIn ?? "",
             checkOut: extracted.checkOut ?? "",

@@ -1,21 +1,20 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getPlatformSettings } from "@/lib/queries";
+import { toPlatformRates } from "@/lib/rates";
 import { updateBooking } from "@/lib/actions/bookings";
 import { BookingForm } from "@/components/booking-form";
 import { Card } from "@/components/ui/primitives";
 import { toDateInputValue } from "@/lib/format";
+import { toNumber } from "@/lib/calc";
 
 export default async function EditBookingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const booking = await prisma.booking.findUnique({ where: { id } });
+  const booking = await prisma.booking.findUnique({ where: { id }, include: { property: true } });
   if (!booking) notFound();
 
   const settings = await getPlatformSettings();
-  const rates = {
-    BOOKING: { commissionPercent: Number(settings.BOOKING.commissionPercent), taxPercent: Number(settings.BOOKING.taxPercent) },
-    AIRBNB: { commissionPercent: Number(settings.AIRBNB.commissionPercent), taxPercent: Number(settings.AIRBNB.taxPercent) },
-  };
+  const rates = toPlatformRates(settings);
 
   const updateWithId = updateBooking.bind(null, booking.id);
 
@@ -27,10 +26,12 @@ export default async function EditBookingPage({ params }: { params: Promise<{ id
           propertyId={booking.propertyId}
           action={updateWithId}
           rates={rates}
+          cityTaxRate={toNumber(booking.property.cityTaxRate)}
           submitLabel="Salva modifiche"
           autoCalcDefault={false}
           initial={{
             guestName: booking.guestName,
+            guests: String(booking.guests),
             platform: booking.platform,
             checkIn: toDateInputValue(booking.checkIn),
             checkOut: toDateInputValue(booking.checkOut),
@@ -38,6 +39,7 @@ export default async function EditBookingPage({ params }: { params: Promise<{ id
             platformCommission: String(booking.platformCommission),
             taxes: String(booking.taxes),
             otherDeductions: String(booking.otherDeductions),
+            cityTax: String(booking.cityTax),
             notes: booking.notes ?? "",
           }}
         />

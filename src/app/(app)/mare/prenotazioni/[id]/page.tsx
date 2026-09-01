@@ -33,7 +33,8 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             <h1 className="text-2xl font-semibold text-slate-900">{booking.guestName}</h1>
           </div>
           <p className="mt-1 text-sm text-slate-500">
-            {formatDate(booking.checkIn)} → {formatDate(booking.checkOut)} · {nights} notti · {booking.property.name}
+            {formatDate(booking.checkIn)} → {formatDate(booking.checkOut)} · {nights} notti · {booking.guests}{" "}
+            {booking.guests === 1 ? "ospite" : "ospiti"} · {booking.property.name}
           </p>
         </div>
         <div className="flex gap-2">
@@ -78,6 +79,16 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             </dd>
           </div>
         </dl>
+      </Card>
+
+      <Card className="border-amber-200 bg-amber-50">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold text-slate-900">Tassa di soggiorno</h2>
+            <p className="text-xs text-amber-700">Da versare al Comune — non è inclusa nel guadagno netto sopra.</p>
+          </div>
+          <p className="text-lg font-semibold text-amber-800">{formatCurrency(Number(booking.cityTax))}</p>
+        </div>
       </Card>
 
       <Card>

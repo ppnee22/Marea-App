@@ -58,6 +58,16 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
         <StatCard label="Notti affittate" value={String(annual.nights)} />
       </div>
 
+      <Card className="border-amber-200 bg-amber-50">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold text-slate-900">Tasse di soggiorno da versare al Comune</h2>
+            <p className="text-xs text-amber-700">Accumulate dalle prenotazioni {year}, non incluse nel guadagno netto.</p>
+          </div>
+          <p className="text-2xl font-semibold text-amber-800">{formatCurrency(annual.totalCityTax)}</p>
+        </div>
+      </Card>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <h2 className="font-semibold text-slate-900">Booking.com</h2>

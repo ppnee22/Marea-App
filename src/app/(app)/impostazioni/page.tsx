@@ -1,12 +1,18 @@
 import { prisma } from "@/lib/prisma";
 import { getPlatformSettings } from "@/lib/queries";
+import { ensureSeasideProperty } from "@/lib/actions/properties";
 import { PLATFORM_LABELS } from "@/lib/labels";
-import { updatePlatformSetting, createAppUser, deleteAppUser } from "@/lib/actions/settings";
+import { updatePlatformSetting, updateCityTaxRate, createAppUser, deleteAppUser } from "@/lib/actions/settings";
 import { Button, Card, Field, Input } from "@/components/ui/primitives";
 import { auth } from "@/auth";
 
 export default async function SettingsPage() {
-  const [settings, users, session] = await Promise.all([getPlatformSettings(), prisma.user.findMany({ orderBy: { createdAt: "asc" } }), auth()]);
+  const [settings, users, session, seasideProperty] = await Promise.all([
+    getPlatformSettings(),
+    prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
+    auth(),
+    ensureSeasideProperty(),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -16,10 +22,10 @@ export default async function SettingsPage() {
       </div>
 
       <Card>
-        <h2 className="font-semibold text-slate-900">Commissioni e tasse per piattaforma</h2>
+        <h2 className="font-semibold text-slate-900">Commissioni, IVA e tasse per piattaforma</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Percentuali applicate automaticamente alle nuove prenotazioni (modificabili manualmente su ogni prenotazione). Il regime
-          fiscale di riferimento predefinito è la cedolare secca al 21%.
+          Applicate automaticamente alle nuove prenotazioni (modificabili manualmente su ogni prenotazione). Formula:
+          commissione + costo transazione, IVA calcolata su questi due, tasse (cedolare secca) calcolate sull&apos;importo pagato.
         </p>
         <div className="mt-4 space-y-4">
           {(["BOOKING", "AIRBNB"] as const).map((platform) => {
@@ -28,22 +34,55 @@ export default async function SettingsPage() {
               <form
                 key={platform}
                 action={updatePlatformSetting.bind(null, platform)}
-                className="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-3 sm:items-end"
+                className="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-2"
               >
-                <p className="font-medium text-slate-800 sm:col-span-3">{PLATFORM_LABELS[platform]}</p>
-                <Field label="Commissione piattaforma (%)">
+                <p className="font-medium text-slate-800 sm:col-span-2">{PLATFORM_LABELS[platform]}</p>
+                <Field label="Commissione (%)">
                   <Input type="text" inputMode="decimal" name="commissionPercent" defaultValue={s.commissionPercent.toString()} />
+                </Field>
+                <Field label="Costo transazione (%)">
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    name="transactionFeePercent"
+                    defaultValue={s.transactionFeePercent.toString()}
+                  />
+                </Field>
+                <Field label="IVA su commissione (%)">
+                  <Input type="text" inputMode="decimal" name="vatPercent" defaultValue={s.vatPercent.toString()} />
                 </Field>
                 <Field label="Tasse / cedolare secca (%)">
                   <Input type="text" inputMode="decimal" name="taxPercent" defaultValue={s.taxPercent.toString()} />
                 </Field>
-                <Button type="submit" size="sm">
+                <Button type="submit" size="sm" className="sm:col-span-2 sm:w-fit">
                   Salva
                 </Button>
               </form>
             );
           })}
         </div>
+      </Card>
+
+      <Card>
+        <h2 className="font-semibold text-slate-900">Tassa di soggiorno</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Tariffa comunale a persona per notte. Viene calcolata automaticamente per ogni prenotazione (notti × ospiti × tariffa) e
+          tenuta separata dal guadagno netto, come importo da versare al Comune.
+        </p>
+        <form action={updateCityTaxRate.bind(null, seasideProperty.id)} className="mt-3 flex flex-wrap items-end gap-3">
+          <Field label="Tariffa (€ a persona a notte)">
+            <Input
+              type="text"
+              inputMode="decimal"
+              name="cityTaxRate"
+              defaultValue={seasideProperty.cityTaxRate?.toString() ?? ""}
+              placeholder="es. 2.00"
+            />
+          </Field>
+          <Button type="submit" size="sm">
+            Salva
+          </Button>
+        </form>
       </Card>
 
       <Card>

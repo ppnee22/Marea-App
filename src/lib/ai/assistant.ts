@@ -35,8 +35,10 @@ async function buildDataSnapshot() {
       piattaforma: PLATFORM_LABELS[b.platform],
       checkIn: b.checkIn.toISOString().slice(0, 10),
       checkOut: b.checkOut.toISOString().slice(0, 10),
+      ospiti: b.guests,
       incassato: toNumber(b.amountPaid),
       guadagnoNetto: bookingNetProfit(b),
+      tassaSoggiornoDaVersare: toNumber(b.cityTax),
     };
   });
 
@@ -72,6 +74,8 @@ async function buildDataSnapshot() {
     (p) => p.amountPaid ?? p.amountDue
   );
 
+  const totaleTasseSoggiornoDaVersare = sumBy(bookings, (b) => b.cityTax);
+
   return {
     anno: currentYear,
     appartamenti: properties.map((p) => ({
@@ -86,6 +90,7 @@ async function buildDataSnapshot() {
     speseAnnoCorrentePerAppartamento: expensesByProperty,
     pagamentiMensiliNonPagati: unpaidMonthly,
     totaleAffittiMensiliIncassatiAnno: monthlyPaidTotal,
+    totaleTasseSoggiornoDaVersare,
   };
 }
 

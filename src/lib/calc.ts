@@ -43,15 +43,34 @@ export function roundMoney(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-export function applyDefaultCommissionAndTax(
-  amountPaid: number,
-  commissionPercent: number,
-  taxPercent: number
-) {
+export interface PlatformRatesInput {
+  commissionPercent: number; // commissione host (Airbnb) o commissione piattaforma (Booking)
+  transactionFeePercent: number; // costo transazione, tipicamente solo Booking (0 per Airbnb)
+  vatPercent: number; // IVA applicata sulla commissione (+ costo transazione)
+  taxPercent: number; // ritenuta fiscale / cedolare secca
+}
+
+/**
+ * Calcola commissioni, IVA e tasse secondo le regole reali delle piattaforme:
+ * - Airbnb: commissione host + IVA sulla commissione
+ * - Booking: commissione + costo transazione, IVA su entrambi
+ * In entrambi i casi platformCommission memorizzata = commissione + costoTransazione + IVA.
+ */
+export function applyDefaultCommissionAndTax(amountPaid: number, rates: PlatformRatesInput) {
+  const commission = (amountPaid * rates.commissionPercent) / 100;
+  const transactionFee = (amountPaid * rates.transactionFeePercent) / 100;
+  const vat = ((commission + transactionFee) * rates.vatPercent) / 100;
   return {
-    platformCommission: roundMoney((amountPaid * commissionPercent) / 100),
-    taxes: roundMoney((amountPaid * taxPercent) / 100),
+    commission: roundMoney(commission),
+    transactionFee: roundMoney(transactionFee),
+    vat: roundMoney(vat),
+    platformCommission: roundMoney(commission + transactionFee + vat),
+    taxes: roundMoney((amountPaid * rates.taxPercent) / 100),
   };
+}
+
+export function computeCityTax(nights: number, guests: number, ratePerGuestPerNight: number): number {
+  return roundMoney(nights * guests * ratePerGuestPerNight);
 }
 
 export const MONTH_NAMES_IT = [

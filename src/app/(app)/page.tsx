@@ -74,6 +74,18 @@ export default async function DashboardPage() {
         <StatCard label="Affitti da ricevere" value={formatCurrency(outstanding)} color="amber" />
       </div>
 
+      {seasideBalance.totalCityTax > 0 ? (
+        <Card className="border-amber-200 bg-amber-50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-slate-900">Tasse di soggiorno da versare al Comune</h2>
+              <p className="text-xs text-amber-700">Non incluse nel guadagno netto sopra.</p>
+            </div>
+            <p className="text-xl font-semibold text-amber-800">{formatCurrency(seasideBalance.totalCityTax)}</p>
+          </div>
+        </Card>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <h2 className="font-semibold text-slate-900">Check-in / check-out imminenti (14 giorni)</h2>

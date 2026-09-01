@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/actions/guard";
 
 export interface ExtractedBookingData {
   guestName: string | null;
+  guests: number | null;
   platform: "BOOKING" | "AIRBNB" | null;
   checkIn: string | null; // YYYY-MM-DD
   checkOut: string | null; // YYYY-MM-DD
@@ -19,13 +20,14 @@ export interface ExtractedBookingData {
 const SYSTEM_PROMPT = `Sei un assistente che estrae dati strutturati da screenshot di prenotazioni di Booking.com o Airbnb.
 Analizza l'immagine (o le immagini, che potrebbero essere due schermate della stessa prenotazione) ed estrai:
 - guestName: nome e cognome del cliente
+- guests: numero di ospiti/persone indicato (numero intero), altrimenti null
 - platform: "BOOKING" se è Booking.com, "AIRBNB" se è Airbnb, altrimenti null
 - checkIn: data di check-in in formato YYYY-MM-DD
 - checkOut: data di check-out in formato YYYY-MM-DD
 - amountPaid: importo totale pagato/guadagnato dal cliente (numero, senza simbolo di valuta)
 - platformCommission: eventuale commissione della piattaforma se visibile (numero), altrimenti null
 - taxes: eventuali tasse indicate se visibili (numero), altrimenti null
-- notes: eventuali altre informazioni utili visibili (es. numero ospiti, codice prenotazione)
+- notes: eventuali altre informazioni utili visibili (es. codice prenotazione)
 - confidence: "alta", "media" o "bassa" in base a quanto sei sicuro dei dati estratti
 
 Rispondi ESCLUSIVAMENTE con un oggetto JSON valido con queste chiavi, nessun altro testo.

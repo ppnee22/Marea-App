@@ -10,15 +10,32 @@ export async function updatePlatformSetting(platform: Platform, formData: FormDa
   await requireAuth();
 
   const commissionPercent = Number(String(formData.get("commissionPercent") ?? "0").replace(",", "."));
+  const transactionFeePercent = Number(String(formData.get("transactionFeePercent") ?? "0").replace(",", "."));
+  const vatPercent = Number(String(formData.get("vatPercent") ?? "0").replace(",", "."));
   const taxPercent = Number(String(formData.get("taxPercent") ?? "0").replace(",", "."));
 
   await prisma.platformSetting.upsert({
     where: { platform },
-    update: { commissionPercent, taxPercent },
-    create: { platform, commissionPercent, taxPercent },
+    update: { commissionPercent, transactionFeePercent, vatPercent, taxPercent },
+    create: { platform, commissionPercent, transactionFeePercent, vatPercent, taxPercent },
   });
 
   revalidatePath("/impostazioni");
+}
+
+export async function updateCityTaxRate(propertyId: string, formData: FormData) {
+  await requireAuth();
+
+  const value = String(formData.get("cityTaxRate") ?? "").trim().replace(",", ".");
+  const cityTaxRate = value === "" ? null : Number(value);
+
+  await prisma.property.update({
+    where: { id: propertyId },
+    data: { cityTaxRate },
+  });
+
+  revalidatePath("/impostazioni");
+  revalidatePath("/mare");
 }
 
 export async function createAppUser(formData: FormData) {

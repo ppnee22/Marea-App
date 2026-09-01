@@ -23,6 +23,7 @@ function decimal(formData: FormData, key: string): number {
 export interface BookingInput {
   propertyId: string;
   guestName: string;
+  guests: number;
   platform: Platform;
   checkIn: Date;
   checkOut: Date;
@@ -30,6 +31,7 @@ export interface BookingInput {
   platformCommission: number;
   taxes: number;
   otherDeductions: number;
+  cityTax: number;
   notes: string | null;
 }
 
@@ -51,10 +53,12 @@ function parseBookingForm(formData: FormData): BookingInput {
   if (checkOutDate <= checkInDate) {
     throw new Error("Il check-out deve essere successivo al check-in");
   }
+  const guests = Math.max(1, Math.round(Number(str(formData, "guests") ?? "1")) || 1);
 
   return {
     propertyId,
     guestName,
+    guests,
     platform,
     checkIn: checkInDate,
     checkOut: checkOutDate,
@@ -62,6 +66,7 @@ function parseBookingForm(formData: FormData): BookingInput {
     platformCommission: decimal(formData, "platformCommission"),
     taxes: decimal(formData, "taxes"),
     otherDeductions: decimal(formData, "otherDeductions"),
+    cityTax: decimal(formData, "cityTax"),
     notes: str(formData, "notes"),
   };
 }

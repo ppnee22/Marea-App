@@ -1,15 +1,13 @@
 import { ensureSeasideProperty } from "@/lib/actions/properties";
 import { getPlatformSettings } from "@/lib/queries";
+import { toPlatformRates } from "@/lib/rates";
 import { ImportBookingFlow } from "@/components/import-booking-flow";
+import { toNumber } from "@/lib/calc";
 
 export default async function ImportBookingPage() {
   const property = await ensureSeasideProperty();
   const settings = await getPlatformSettings();
-
-  const rates = {
-    BOOKING: { commissionPercent: Number(settings.BOOKING.commissionPercent), taxPercent: Number(settings.BOOKING.taxPercent) },
-    AIRBNB: { commissionPercent: Number(settings.AIRBNB.commissionPercent), taxPercent: Number(settings.AIRBNB.taxPercent) },
-  };
+  const rates = toPlatformRates(settings);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -19,7 +17,7 @@ export default async function ImportBookingPage() {
           Carica fino a 2 foto della prenotazione (Booking o Airbnb): l&apos;IA leggerà automaticamente i dati principali.
         </p>
       </div>
-      <ImportBookingFlow propertyId={property.id} rates={rates} />
+      <ImportBookingFlow propertyId={property.id} rates={rates} cityTaxRate={toNumber(property.cityTaxRate)} />
     </div>
   );
 }
