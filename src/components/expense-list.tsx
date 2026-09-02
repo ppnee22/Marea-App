@@ -5,6 +5,7 @@ import { ExpenseCategory } from "@prisma/client";
 import { formatCurrency, formatDate, toDateInputValue } from "@/lib/format";
 import { EXPENSE_CATEGORY_LABELS, enumOptions } from "@/lib/labels";
 import { deleteExpense, updateExpense } from "@/lib/actions/expenses";
+import { compressImageFile } from "@/lib/image-compress";
 import { Badge, Button, Field, Input, Select, Textarea } from "@/components/ui/primitives";
 
 const CATEGORY_OPTIONS = enumOptions(EXPENSE_CATEGORY_LABELS);
@@ -23,14 +24,24 @@ export interface ExpenseListItem {
 
 function ExpenseRow({ expense }: { expense: ExpenseListItem }) {
   const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (editing) {
     return (
       <li className="py-3">
         <form
           action={async (formData) => {
-            await updateExpense(expense.id, formData);
-            setEditing(false);
+            setError(null);
+            try {
+              const attachment = formData.get("attachment");
+              if (attachment instanceof File && attachment.size > 0) {
+                formData.set("attachment", await compressImageFile(attachment));
+              }
+              await updateExpense(expense.id, formData);
+              setEditing(false);
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Errore durante il salvataggio");
+            }
           }}
           className="space-y-3 rounded-xl border border-teal-200 bg-teal-50/40 p-3"
         >
@@ -65,6 +76,7 @@ function ExpenseRow({ expense }: { expense: ExpenseListItem }) {
               className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm"
             />
           </Field>
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <div className="flex gap-2">
             <Button type="submit" size="sm">
               Salva modifiche

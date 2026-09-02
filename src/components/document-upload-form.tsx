@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button, Field, Input, Select } from "@/components/ui/primitives";
 import { DOCUMENT_CATEGORY_LABELS, enumOptions } from "@/lib/labels";
 import { uploadDocument } from "@/lib/actions/documents";
+import { compressImageFile } from "@/lib/image-compress";
 import { DocumentCategory } from "@prisma/client";
 
 const CATEGORY_OPTIONS = enumOptions(DOCUMENT_CATEGORY_LABELS);
@@ -37,6 +38,10 @@ export function DocumentUploadForm({
         setPending(true);
         setError(null);
         try {
+          const file = formData.get("file");
+          if (file instanceof File && file.size > 0) {
+            formData.set("file", await compressImageFile(file));
+          }
           await uploadDocument(formData);
           setOpen(false);
         } catch (e) {

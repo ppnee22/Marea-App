@@ -3,8 +3,20 @@
 import { useState } from "react";
 import { extractBookingFromScreenshots, ExtractedBookingData } from "@/lib/ai/ocr";
 import { createBookingFromImport } from "@/lib/actions/bookings";
+import { compressImageFile } from "@/lib/image-compress";
 import { BookingForm, PlatformRates } from "@/components/booking-form";
 import { Button, Card } from "@/components/ui/primitives";
+
+/** createBookingFromImport reindirizza (throw interno di Next.js) quando va a buon fine: va sempre rilanciato. */
+function isNextRedirectError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof (error as { digest?: unknown }).digest === "string" &&
+    (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+  );
+}
 
 export function ImportBookingFlow({
   propertyId,
@@ -18,16 +30,25 @@ export function ImportBookingFlow({
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [extracted, setExtracted] = useState<ExtractedBookingData | null>(null);
 
-  function onFilesSelected(fileList: FileList | null) {
+  async function onFilesSelected(fileList: FileList | null) {
     if (!fileList) return;
     const selected = Array.from(fileList).slice(0, 2);
-    setFiles(selected);
-    setPreviews(selected.map((f) => URL.createObjectURL(f)));
     setExtracted(null);
     setError(null);
+    setCompressing(true);
+    try {
+      const compressed = await Promise.all(selected.map((f) => compressImageFile(f)));
+      setFiles(compressed);
+      setPreviews(compressed.map((f) => URL.createObjectURL(f)));
+    } finally {
+      setCompressing(false);
+    }
   }
 
   async function analyze() {
@@ -68,8 +89,8 @@ export function ImportBookingFlow({
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-        <Button type="button" disabled={files.length === 0 || loading} onClick={analyze}>
-          {loading ? "Analisi in corso..." : "✨ Analizza con IA"}
+        <Button type="button" disabled={files.length === 0 || loading || compressing} onClick={analyze}>
+          {compressing ? "Preparazione foto..." : loading ? "Analisi in corso..." : "✨ Analizza con IA"}
         </Button>
       </Card>
     );
@@ -107,12 +128,18 @@ export function ImportBookingFlow({
         </div>
       </Card>
 
+      {saveError ? (
+        <Card className="border-red-200 bg-red-50">
+          <p className="text-sm text-red-700">{saveError}</p>
+        </Card>
+      ) : null}
+
       <Card>
         <BookingForm
           propertyId={propertyId}
           rates={rates}
           cityTaxRate={cityTaxRate}
-          submitLabel="Conferma e salva prenotazione"
+          submitLabel={saving ? "Salvataggio..." : "Conferma e salva prenotazione"}
           autoCalcDefault={extracted.platformCommission === null && extracted.taxes === null}
           initial={{
             guestName: extracted.guestName ?? "",
@@ -127,8 +154,16 @@ export function ImportBookingFlow({
             notes: extracted.notes ?? "",
           }}
           action={async (formData) => {
-            files.forEach((file) => formData.append("screenshots", file));
-            await createBookingFromImport(formData);
+            setSaving(true);
+            setSaveError(null);
+            try {
+              files.forEach((file) => formData.append("screenshots", file));
+              await createBookingFromImport(formData);
+            } catch (e) {
+              if (isNextRedirectError(e)) throw e;
+              setSaveError(e instanceof Error ? e.message : "Errore durante il salvataggio della prenotazione");
+              setSaving(false);
+            }
           }}
         />
       </Card>

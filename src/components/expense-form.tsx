@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui/primitives";
 import { EXPENSE_CATEGORY_LABELS, enumOptions } from "@/lib/labels";
 import { createExpense } from "@/lib/actions/expenses";
+import { compressImageFile } from "@/lib/image-compress";
 
 const CATEGORY_OPTIONS = enumOptions(EXPENSE_CATEGORY_LABELS);
 
@@ -19,6 +20,8 @@ export function ExpenseForm({
   onDone?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!open) {
     return (
@@ -31,9 +34,21 @@ export function ExpenseForm({
   return (
     <form
       action={async (formData) => {
-        await createExpense(formData);
-        setOpen(false);
-        onDone?.();
+        setPending(true);
+        setError(null);
+        try {
+          const attachment = formData.get("attachment");
+          if (attachment instanceof File && attachment.size > 0) {
+            formData.set("attachment", await compressImageFile(attachment));
+          }
+          await createExpense(formData);
+          setOpen(false);
+          onDone?.();
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Errore durante il salvataggio della spesa");
+        } finally {
+          setPending(false);
+        }
       }}
       className="space-y-3 rounded-xl border border-slate-200 p-4"
     >
@@ -89,9 +104,11 @@ export function ExpenseForm({
         />
       </Field>
 
+      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
       <div className="flex gap-2">
-        <Button type="submit" size="sm">
-          Salva spesa
+        <Button type="submit" size="sm" disabled={pending}>
+          {pending ? "Salvataggio..." : "Salva spesa"}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
           Annulla
